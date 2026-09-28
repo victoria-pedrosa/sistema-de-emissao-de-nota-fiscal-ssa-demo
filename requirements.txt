@@ -1,0 +1,10 @@
+# Sugerido automaticamente a partir dos imports. Fixar versões com pip freeze.
+ddddocr
+google-api-python-client
+gspread
+pandas
+Pillow
+requests
+selenium
+webdriver-manager
+python-dotenv

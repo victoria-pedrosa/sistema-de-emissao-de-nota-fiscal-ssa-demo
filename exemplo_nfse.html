@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exemplo NFS-e</title>
+<style>
+:root {
+    --verde-escuro: #1F4D2C;
+    --verde-escuro-hover: #2A6A3D;
+    --verde-claro: #7FB069;
+    --verde-claro-hover: #98C285;
+    --verde-suave: #E8F2E1;
+    --verde-borda: #C3DCB1;
+    --fundo: #F7FAF5;
+    --branco: #FFFFFF;
+    --cinza-borda: #DEE5D8;
+    --cinza-texto: #5A6B5C;
+    --texto-principal: #1F2D22;
+    --alerta-alta: #B23A48;
+    --alerta-alta-bg: #FBE9EC;
+    --alerta-media: #D68C28;
+    --alerta-media-bg: #FFF4E2;
+    --alerta-baixa: #4F7B9A;
+    --alerta-baixa-bg: #E6EFF5;
+    --sucesso: #2A6A3D;
+    --sucesso-bg: #E8F2E1;
+    --sombra: 0 2px 6px rgba(31, 77, 44, 0.08);
+    --radius: 8px;
+}
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--fundo);
+    color: var(--texto-principal);
+    font-size: 14px;
+    line-height: 1.5;
+}
+a { color: var(--verde-escuro); text-decoration: none; cursor: pointer; }
+a:hover { text-decoration: underline; }
+.topbar {
+    background: var(--verde-escuro);
+    color: white;
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: var(--sombra);
+}
+.topbar .marca { font-weight: 700; font-size: 18px; letter-spacing: 0.5px; }
+.topbar nav { display: flex; gap: 4px; }
+.topbar nav a {
+    color: white;
+    padding: 8px 14px;
+    border-radius: var(--radius);
+    font-weight: 500;
+    transition: background 0.15s;
+    cursor: pointer;
+}
+.topbar nav a:hover { background: rgba(255,255,255,0.15); text-decoration: none; }
+.topbar nav a.ativo { background: var(--verde-claro); color: var(--verde-escuro); }
+.topbar .usuario { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+.topbar .usuario .nome { opacity: 0.9; }
+.topbar .usuario a { color: var(--verde-claro); }
+.container { max-width: 1280px; margin: 24px auto; padding: 0 24px; }
+.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+.page-header h1 { margin: 0; color: var(--verde-escuro); font-size: 22px; }
+.card { background: var(--branco); border: 1px solid var(--cinza-borda); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; box-shadow: var(--sombra); }
+.card h2 { margin: 0 0 16px; color: var(--verde-escuro); font-size: 16px; font-weight: 600; padding-bottom: 10px; border-bottom: 2px solid var(--verde-claro); }
+.card h3 { color: var(--verde-escuro); font-size: 14px; margin: 16px 0 8px; }
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.kpi { background: var(--branco); border-left: 4px solid var(--verde-claro); border-radius: var(--radius); padding: 16px; box-shadow: var(--sombra); }
+.kpi .label { color: var(--cinza-texto); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.kpi .valor { font-size: 28px; font-weight: 700; color: var(--verde-escuro); }
+.kpi.destaque { border-left-color: var(--verde-escuro); }
+.kpi.alerta { border-left-color: var(--alerta-media); }
+.kpi.alerta .valor { color: var(--alerta-media); }
+.kpi.erro { border-left-color: var(--alerta-alta); }
+.kpi.erro .valor { color: var(--alerta-alta); }
+table { width: 100%; border-collapse: collapse; background: var(--branco); }
+table th { background: var(--verde-suave); color: var(--verde-escuro); text-align: left; padding: 10px 12px; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.3px; border-bottom: 2px solid var(--verde-claro); }
+table td { padding: 10px 12px; border-bottom: 1px solid var(--cinza-borda); vertical-align: middle; }
+table tr:hover td { background: var(--verde-suave); }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.form-grupo { display: flex; flex-direction: column; }
+.form-grupo label { font-size: 12px; font-weight: 600; color: var(--verde-escuro); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
+.form-grupo input, .form-grupo select, .form-grupo textarea { border: 1px solid var(--cinza-borda); border-radius: var(--radius); padding: 9px 12px; background: var(--branco); font-size: 14px; font-family: inherit; transition: border 0.15s, box-shadow 0.15s; }
+.form-grupo input:focus, .form-grupo select:focus, .form-grupo textarea:focus { outline: none; border-color: var(--verde-claro); box-shadow: 0 0 0 3px var(--verde-suave); }
+.form-grupo textarea { resize: vertical; min-height: 80px; }
+.form-grupo.full { grid-column: 1 / -1; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border: none; border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.15s, transform 0.05s; text-decoration: none; font-family: inherit; }
+.btn:hover { transform: translateY(-1px); text-decoration: none; }
+.btn-primario { background: var(--verde-escuro); color: white; }
+.btn-primario:hover { background: var(--verde-escuro-hover); }
+.btn-secundario { background: var(--verde-claro); color: var(--verde-escuro); }
+.btn-secundario:hover { background: var(--verde-claro-hover); }
+.btn-outline { background: transparent; color: var(--verde-escuro); border: 1px solid var(--verde-escuro); }
+.btn-outline:hover { background: var(--verde-suave); }
+.btn-perigo { background: var(--alerta-alta); color: white; }
+.btn-perigo:hover { background: #931E2C; }
+.btn-pequeno { padding: 5px 10px; font-size: 12px; }
+.flash-msg { padding: 12px 16px; border-radius: var(--radius); margin-bottom: 16px; font-weight: 500; border-left: 4px solid; animation: slideIn 0.3s; }
+.flash-msg.sucesso { background: var(--sucesso-bg); color: var(--sucesso); border-color: var(--sucesso); }
+.flash-msg.erro { background: var(--alerta-alta-bg); color: var(--alerta-alta); border-color: var(--alerta-alta); }
+@keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+.alerta-particularidade { border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; border-left: 4px solid; display: flex; align-items: flex-start; gap: 12px; }
+.alerta-particularidade.alta { background: var(--alerta-alta-bg); border-color: var(--alerta-alta); color: var(--alerta-alta); }
+.alerta-particularidade.media { background: var(--alerta-media-bg); border-color: var(--alerta-media); color: #8C5A12; }
+.alerta-particularidade.baixa { background: var(--alerta-baixa-bg); border-color: var(--alerta-baixa); color: var(--alerta-baixa); }
+.alerta-particularidade .icone { font-size: 20px; line-height: 1; }
+.alerta-particularidade .corpo { flex: 1; }
+.alerta-particularidade .titulo { font-weight: 700; margin-bottom: 2px; }
+.alerta-particularidade .meta { font-size: 12px; opacity: 0.8; margin-top: 4px; }
+.badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+.badge.pendente { background: #FFF4E2; color: #8C5A12; }
+.badge.em_emissao { background: #E6EFF5; color: var(--alerta-baixa); }
+.badge.emitida { background: var(--sucesso-bg); color: var(--sucesso); }
+.badge.erro { background: var(--alerta-alta-bg); color: var(--alerta-alta); }
+.badge.cancelada { background: #EEE; color: #777; }
+.badge.aguardando_revisao { background: #FFF4E2; color: var(--alerta-media); }
+.badge.alta { background: var(--alerta-alta-bg); color: var(--alerta-alta); }
+.badge.media { background: var(--alerta-media-bg); color: #8C5A12; }
+.badge.baixa { background: var(--alerta-baixa-bg); color: var(--alerta-baixa); }
+.badge.admin { background: var(--verde-suave); color: var(--verde-escuro); }
+.badge.socio { background: var(--alerta-media-bg); color: #8C5A12; }
+.badge.estagiario { background: var(--alerta-baixa-bg); color: var(--alerta-baixa); }
+.login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--verde-suave) 0%, var(--fundo) 100%); }
+.login-box { background: var(--branco); padding: 40px; border-radius: 12px; box-shadow: 0 10px 40px rgba(31, 77, 44, 0.15); width: 380px; border-top: 4px solid var(--verde-claro); }
+.login-box h1 { color: var(--verde-escuro); text-align: center; margin: 0 0 8px; font-size: 24px; }
+.login-box .subtitulo { text-align: center; color: var(--cinza-texto); font-size: 13px; margin-bottom: 24px; }
+.log-console { background: #1A2A1F; color: #C3DCB1; padding: 16px; border-radius: var(--radius); font-family: "Consolas", monospace; font-size: 12px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; border: 1px solid #2A4A33; }
+.flex { display: flex; gap: 8px; align-items: center; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.text-right { text-align: right; }
+.text-muted { color: var(--cinza-texto); }
+.mt-16 { margin-top: 16px; }
+.mb-16 { margin-bottom: 16px; }
+.grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.hidden { display: none !important; }
+.aviso-demo { background: #FFF4E2; border-left: 4px solid var(--alerta-media); padding: 10px 14px; font-size: 12px; color: #8C5A12; margin-bottom: 16px; border-radius: 6px; }
+@media (max-width: 768px) {
+    .topbar { flex-direction: column; gap: 12px; padding: 12px; }
+    .topbar nav { flex-wrap: wrap; justify-content: center; }
+    .container { padding: 0 12px; }
+    .form-grid { grid-template-columns: 1fr; }
+    table { font-size: 13px; }
+    .grid-2col { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- TELA DE LOGIN -->
+<div id="tela-login" class="login-page">
+    <div class="login-box">
+        <h1>Exemplo NFS-e</h1>
+        <p class="subtitulo">Versão de demonstração local</p>
+        <div id="login-erro"></div>
+        <form id="form-login">
+            <div class="form-grupo mb-16">
+                <label>E-mail</label>
+                <input type="email" id="login-email" required autofocus value="admin@exemplo.com.br">
+            </div>
+            <div class="form-grupo mb-16">
+                <label>Senha</label>
+                <input type="password" id="login-senha" required>
+            </div>
+            <button type="submit" class="btn btn-primario" style="width: 100%; justify-content: center;">Entrar</button>
+        </form>
+        <p style="text-align: center; margin-top: 20px; font-size: 12px; color: var(--cinza-texto);">
+            Usuário inicial: <strong>admin@exemplo.com.br</strong> (no primeiro acesso, digite a senha que deseja criar)
+        </p>
+    </div>
+</div>
+
+<!-- APP PRINCIPAL -->
+<div id="app" class="hidden">
+    <header class="topbar">
+        <div class="marca">Exemplo NFS-e</div>
+        <nav id="nav-principal">
+            <a data-pagina="dashboard">Painel</a>
+            <a data-pagina="solicitacoes">Notas</a>
+            <a data-pagina="solicitacao-nova">+ Nova Nota</a>
+            <a data-pagina="prestadores">Prestadores</a>
+            <a data-pagina="usuarios" id="nav-usuarios">Equipe</a>
+        </nav>
+        <div class="usuario">
+            <span class="nome" id="usuario-nome"></span>
+            <a id="btn-logout">Sair</a>
+        </div>
+    </header>
+    <main class="container" id="conteudo"></main>
+</div>
+
+<script>
+// ============================================================
+// MODO DEMO: simulação local com localStorage
+// ============================================================
+
+const LS_KEY = 'exemplo_nfse_v1';
+
+// Estado inicial
+function estadoVazio() {
+    return {
+        usuarios: [{
+            id: 1, nome: 'Administrador', email: 'admin@exemplo.com.br',
+            senha: '', perfil: 'admin', ativo: 1,
+            criado_em: new Date().toISOString().slice(0, 19).replace('T', ' ')
+        }],
+        prestadores: [],
+        particularidades: [],
+        tomadores: [],
+        solicitacoes: [],
+        alertas_disparados: [],
+        proximo_id: { usuarios: 2, prestadores: 1, particularidades: 1, tomadores: 1, solicitacoes: 1, alertas_disparados: 1 },
+        sessao: null
+    };
+}
+
+// Carrega/salva no localStorage
+function carregar() {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) {
+        try { return JSON.parse(raw); }
+        catch (e) { return estadoVazio(); }
+    }
+    return estadoVazio();
+}
+function salvar() { localStorage.setItem(LS_KEY, JSON.stringify(db)); }
+function resetar() {
+    if (confirm('Tem certeza? Vai apagar todos os dados locais.')) {
+        localStorage.removeItem(LS_KEY);
+        location.reload();
+    }
+}
+
+let db = carregar();
+
+// Helpers
+function proxId(tabela) {
+    const id = db.proximo_id[tabela];
+    db.proximo_id[tabela] = id + 1;
+    return id;
+}
+function agora() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0')
+        + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') + ':' + String(d.getSeconds()).padStart(2,'0');
+}
+function mesAtual() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+}
+function fmtMoeda(v) {
+    return (v || 0).toFixed(2).replace('.', ',');
+}
+function normalizarCnpj(c) {
+    return (c || '').toString().replace(/\D/g, '');
+}
+function escapeHtml(s) {
+    if (s == null) return '';
+    return s.toString()
+        .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+}
+
+// ============================================================
+// AUTENTICAÇÃO
+// ============================================================
+document.getElementById('form-login').addEventListener('submit', e => {
+    e.preventDefault();
+    const email = document.getElementById('login-email').value.trim().toLowerCase();
+    const senha = document.getElementById('login-senha').value;
+    const erro = document.getElementById('login-erro');
+    let user = db.usuarios.find(u => u.email === email && u.senha !== '' && u.senha === senha && u.ativo);
+    // Primeiro acesso: usuário sem senha cadastrada define a própria senha
+    const primeiroAcesso = db.usuarios.find(u => u.email === email && u.senha === '' && u.ativo);
+    if (!user && primeiroAcesso) {
+        if (senha.length < 8) {
+            erro.innerHTML = '<div class="flash-msg erro">Primeiro acesso: crie uma senha com pelo menos 8 caracteres.</div>';
+            return;
+        }
+        primeiroAcesso.senha = senha;
+        salvar();
+        user = primeiroAcesso;
+    }
+    if (user) {
+        db.sessao = { usuario_id: user.id, nome: user.nome, perfil: user.perfil };
+        salvar();
+        mostrarApp();
+    } else {
+        erro.innerHTML = '<div class="flash-msg erro">E-mail ou senha incorretos.</div>';
+    }
+});
+document.getElementById('btn-logout').addEventListener('click', () => {
+    db.sessao = null;
+    salvar();
+    location.reload();
+});
+
+function mostrarApp() {
+    document.getElementById('tela-login').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    document.getElementById('usuario-nome').textContent = `${db.sessao.nome} (${db.sessao.perfil})`;
+    if (!['admin', 'socio'].includes(db.sessao.perfil)) {
+        document.getElementById('nav-usuarios').classList.add('hidden');
+    }
+    navegar('dashboard');
+}
+
+// Restaurar sessão se houver
+if (db.sessao) mostrarApp();
+
+// ============================================================
+// VALIDADOR DE PARTICULARIDADES
+// ============================================================
+function validarSolicitacao(sol) {
+    const alertas = [];
+    const cnpjTomador = normalizarCnpj(sol.cnpj_tomador);
+    const regras = db.particularidades.filter(p =>
+        p.prestador_id === sol.prestador_id && p.ativo
+    );
+    for (const r of regras) {
+        if (r.cnpj_tomador_especifico) {
+            if (normalizarCnpj(r.cnpj_tomador_especifico) !== cnpjTomador) continue;
+        }
+        const alerta = {
+            particularidade_id: r.id,
+            tipo: r.tipo,
+            descricao: r.descricao,
+            severidade: r.severidade,
+            campo_divergente: null,
+            valor_esperado: r.valor_esperado,
+            valor_informado: null
+        };
+
+        if (r.tipo === 'aviso') {
+            alertas.push(alerta);
+        } else if (r.tipo === 'retencao_obrigatoria') {
+            const campo = (r.valor_esperado || '').toLowerCase().trim();
+            const mapa = { 'inss':'inss','irrf':'irrf','irpj':'irrf','irpf':'irrf','csll':'csll','cofins':'cofins','pis':'pis' };
+            const c = mapa[campo];
+            if (c) {
+                const v = parseFloat(sol[c] || 0);
+                if (v <= 0) {
+                    alerta.campo_divergente = c;
+                    alerta.valor_informado = '0,00';
+                    alertas.push(alerta);
+                }
+            }
+        } else if (r.tipo === 'iss_retido_obrig') {
+            const esp = (r.valor_esperado || '').toUpperCase().trim();
+            const inf = (sol.iss_retido || '').toUpperCase().trim();
+            if (esp && esp !== inf && !(esp === 'NÃO' && inf === 'NAO')) {
+                alerta.campo_divergente = 'iss_retido';
+                alerta.valor_informado = inf;
+                alertas.push(alerta);
+            }
+        } else if (r.tipo === 'aliquota_fixa') {
+            const esp = parseFloat((r.valor_esperado || '0').replace(',', '.'));
+            const inf = parseFloat(sol.aliquota || 0);
+            if (Math.abs(esp - inf) > 0.001) {
+                alerta.campo_divergente = 'aliquota';
+                alerta.valor_informado = inf.toFixed(2);
+                alertas.push(alerta);
+            }
+        } else if (r.tipo === 'cnae_fixo') {
+            const esp = (r.valor_esperado || '').trim();
+            const inf = (sol.cnae || '').trim();
+            if (esp && esp !== inf) {
+                alerta.campo_divergente = 'cnae';
+                alerta.valor_informado = inf;
+                alertas.push(alerta);
+            }
+        } else if (r.tipo === 'descricao_padrao') {
+            const esp = (r.valor_esperado || '').toLowerCase().trim();
+            const inf = (sol.discriminacao || '').toLowerCase();
+            if (esp && !inf.includes(esp)) {
+                alerta.campo_divergente = 'discriminacao';
+                alerta.valor_informado = '(não contém o texto esperado)';
+                alertas.push(alerta);
+            }
+        } else if (['email_destino', 'documentacao', 'cliente_especifico'].includes(r.tipo)) {
+            alertas.push(alerta);
+        }
+    }
+    const ordem = { 'alta':0, 'media':1, 'baixa':2 };
+    alertas.sort((a, b) => (ordem[a.severidade] || 99) - (ordem[b.severidade] || 99));
+    return alertas;
+}
+
+// ============================================================
+// IMPORTADOR DO CSV (AppSheet)
+// ============================================================
+function importarCsv(texto) {
+    // Parse CSV simples respeitando aspas
+    const linhas = parsearCsv(texto);
+    if (linhas.length < 2) return { importados: 0, atualizados: 0, erro: 'CSV vazio' };
+
+    const cabecalho = linhas[0].map(c => c.replace(/:$/, '').trim());
+    const idxEmpresa = cabecalho.findIndex(c => c.toUpperCase() === 'EMPRESA');
+    const idxCnpj = cabecalho.findIndex(c => c.toUpperCase() === 'CNPJ');
+    const idxObs = cabecalho.findIndex(c => c.toUpperCase().startsWith('OBSERV'));
+    const idxRet = cabecalho.findIndex(c => c.toUpperCase() === 'RETENÇÃO' || c.toUpperCase() === 'RETENCAO');
+    const idxBanc = cabecalho.findIndex(c => c.toLowerCase().includes('banc'));
+    const idxDesc = cabecalho.findIndex(c => c.toLowerCase().includes('descri'));
+    const idxIss = cabecalho.findIndex(c => c.toUpperCase().includes('ISS'));
+    const idxMod = cabecalho.findIndex(c => c.toLowerCase().includes('modelo'));
+
+    if (idxEmpresa < 0 || idxCnpj < 0) {
+        return { importados: 0, atualizados: 0, erro: 'Colunas EMPRESA e CNPJ não encontradas.' };
+    }
+
+    let importados = 0, atualizados = 0;
+
+    for (let i = 1; i < linhas.length; i++) {
+        const linha = linhas[i];
+        if (!linha || linha.length === 0) continue;
+        const empresa = (linha[idxEmpresa] || '').trim();
+        const cnpj = (linha[idxCnpj] || '').trim();
+        if (!empresa || !cnpj) continue;
+
+        const obs = (idxObs >= 0 ? linha[idxObs] : '') || '';
+        const retencao = (idxRet >= 0 ? linha[idxRet] : '') || '';
+        const dadosBanc = (idxBanc >= 0 ? linha[idxBanc] : '') || '';
+        const descPadrao = (idxDesc >= 0 ? linha[idxDesc] : '') || '';
+        const issRet = (idxIss >= 0 ? linha[idxIss] : '') || 'Não';
+        const modelo = (idxMod >= 0 ? linha[idxMod] : '') || '';
+
+        const issNorm = ['S','SIM'].includes(issRet.toUpperCase().trim()) ? 'Sim' : 'Não';
+
+        let prestador = db.prestadores.find(p => p.cnpj === cnpj);
+        if (prestador) {
+            prestador.razao_social = empresa;
+            prestador.dados_bancarios = dadosBanc;
+            prestador.descricao_padrao = descPadrao;
+            prestador.iss_retido_padrao = issNorm;
+            prestador.modelo_nota_url = modelo;
+            prestador.observacoes = obs;
+            atualizados++;
+            // Remove particularidades inferidas anteriores
+            db.particularidades = db.particularidades.filter(part =>
+                !(part.prestador_id === prestador.id && part.descricao.startsWith('[Importado AppSheet]'))
+            );
+        } else {
+            prestador = {
+                id: proxId('prestadores'),
+                razao_social: empresa, cnpj: cnpj,
+                dados_bancarios: dadosBanc, descricao_padrao: descPadrao,
+                iss_retido_padrao: issNorm, modelo_nota_url: modelo,
+                observacoes: obs, socio_responsavel: '',
+                senha_prefeitura: '', cnae_padrao: '', aliquota_padrao: null,
+                ativo: 1
+            };
+            db.prestadores.push(prestador);
+            importados++;
+        }
+
+        // Inferir particularidades
+        if (obs) {
+            const itens = obs.split(/\n\s*\d+[\.\)]\s*|\n\s*-\s*/);
+            for (const item of itens) {
+                const it = item.trim();
+                if (it.length < 5) continue;
+                let severidade = 'media', tipo = 'aviso';
+                const tl = it.toLowerCase();
+                if (['cuidado', 'atenção', 'atencao', 'importante'].some(p => tl.includes(p))) severidade = 'alta';
+                if (tl.includes('inss') && (tl.includes('retenção') || tl.includes('reter'))) tipo = 'retencao_obrigatoria';
+                else if ((tl.includes('irrf') || tl.includes('irpj')) && (tl.includes('retenção') || tl.includes('reter'))) tipo = 'retencao_obrigatoria';
+                db.particularidades.push({
+                    id: proxId('particularidades'),
+                    prestador_id: prestador.id,
+                    tipo: tipo,
+                    descricao: '[Importado AppSheet] ' + it.slice(0, 300),
+                    severidade: severidade,
+                    valor_esperado: null,
+                    cnpj_tomador_especifico: null,
+                    ativo: 1
+                });
+            }
+        }
+        if (retencao) {
+            const matches = retencao.toUpperCase().match(/\b(INSS|IRRF|IRPJ|IRPF|CSLL|COFINS|PIS)\b/g);
+            if (matches) {
+                for (const r of [...new Set(matches)]) {
+                    db.particularidades.push({
+                        id: proxId('particularidades'),
+                        prestador_id: prestador.id,
+                        tipo: 'retencao_obrigatoria',
+                        descricao: '[Importado AppSheet] Cliente exige retenção de ' + r,
+                        severidade: 'alta',
+                        valor_esperado: r,
+                        cnpj_tomador_especifico: null,
+                        ativo: 1
+                    });
+                }
+            }
+        }
+        if (issRet && ['S','SIM','N','NÃO','NAO'].includes(issRet.toUpperCase().trim())) {
+            const v = ['S','SIM'].includes(issRet.toUpperCase().trim()) ? 'SIM' : 'NÃO';
+            db.particularidades.push({
+                id: proxId('particularidades'),
+                prestador_id: prestador.id,
+                tipo: 'iss_retido_obrig',
+                descricao: '[Importado AppSheet] ISS Retido deve ser ' + v,
+                severidade: 'alta',
+                valor_esperado: v,
+                cnpj_tomador_especifico: null,
+                ativo: 1
+            });
+        }
+    }
+    salvar();
+    return { importados, atualizados, erro: null };
+}
+
+// CSV parser respeitando aspas e quebras de linha dentro de células
+function parsearCsv(txt) {
+    // Remove BOM
+    if (txt.charCodeAt(0) === 0xFEFF) txt = txt.slice(1);
+    const linhas = [];
+    let linhaAtual = [], campoAtual = '', dentroAspas = false;
+    for (let i = 0; i < txt.length; i++) {
+        const c = txt[i];
+        if (dentroAspas) {
+            if (c === '"' && txt[i+1] === '"') { campoAtual += '"'; i++; }
+            else if (c === '"') { dentroAspas = false; }
+            else { campoAtual += c; }
+        } else {
+            if (c === '"') { dentroAspas = true; }
+            else if (c === ';') { linhaAtual.push(campoAtual); campoAtual = ''; }
+            else if (c === '\n' || c === '\r') {
+                if (c === '\r' && txt[i+1] === '\n') i++;
+                linhaAtual.push(campoAtual);
+                if (linhaAtual.some(c => c.trim().length > 0)) linhas.push(linhaAtual);
+                linhaAtual = []; campoAtual = '';
+            }
+            else { campoAtual += c; }
+        }
+    }
+    if (campoAtual || linhaAtual.length > 0) {
+        linhaAtual.push(campoAtual);
+        if (linhaAtual.some(c => c.trim().length > 0)) linhas.push(linhaAtual);
+    }
+    return linhas;
+}
+
+// ============================================================
+// ROTEAMENTO
+// ============================================================
+const conteudo = document.getElementById('conteudo');
+let flashMsg = null;
+
+function navegar(pagina, params = {}) {
+    document.querySelectorAll('#nav-principal a').forEach(a => {
+        a.classList.toggle('ativo', a.dataset.pagina === pagina);
+    });
+    const flash = flashMsg;
+    flashMsg = null;
+    let html = '';
+    if (flash) html += `<div class="flash-msg ${flash.tipo}">${escapeHtml(flash.msg)}</div>`;
+    if (pagina === 'dashboard') html += paginaDashboard(params);
+    else if (pagina === 'prestadores') html += paginaPrestadores(params);
+    else if (pagina === 'prestador-form') html += paginaPrestadorForm(params);
+    else if (pagina === 'prestador-importar') html += paginaImportar(params);
+    else if (pagina === 'solicitacoes') html += paginaSolicitacoes(params);
+    else if (pagina === 'solicitacao-nova') html += paginaSolicitacaoNova(params);
+    else if (pagina === 'solicitacao-detalhe') html += paginaSolicitacaoDetalhe(params);
+    else if (pagina === 'usuarios') html += paginaUsuarios(params);
+    conteudo.innerHTML = html;
+    window.scrollTo(0, 0);
+}
+
+function flash(msg, tipo = 'sucesso') {
+    flashMsg = { msg, tipo };
+}
+
+// Click delegation no nav
+document.getElementById('nav-principal').addEventListener('click', e => {
+    const a = e.target.closest('a[data-pagina]');
+    if (a) { e.preventDefault(); navegar(a.dataset.pagina); }
+});
+
+// ============================================================
+// PÁGINA: DASHBOARD
+// ============================================================
+function paginaDashboard(params) {
+    const mes = params.mes || mesAtual();
+    const sols = db.solicitacoes.filter(s => (s.criada_em || '').slice(0, 7) === mes);
+    const emitidas = sols.filter(s => s.status === 'emitida');
+    const pendentes = sols.filter(s => s.status === 'pendente').length;
+    const revisao = sols.filter(s => s.status === 'aguardando_revisao').length;
+    const erros = sols.filter(s => s.status === 'erro').length;
+    const faturamento = emitidas.reduce((acc, s) => acc + (s.valor_total || 0), 0);
+
+    // Top prestadores
+    const porPrestador = {};
+    emitidas.forEach(s => {
+        if (!porPrestador[s.prestador_id]) porPrestador[s.prestador_id] = { qtd: 0, total: 0 };
+        porPrestador[s.prestador_id].qtd++;
+        porPrestador[s.prestador_id].total += s.valor_total || 0;
+    });
+    const topPrest = Object.entries(porPrestador).map(([pid, d]) => {
+        const p = db.prestadores.find(x => x.id == pid);
+        return { nome: p ? p.razao_social : '?', qtd: d.qtd, total: d.total };
+    }).sort((a, b) => b.total - a.total).slice(0, 10);
+
+    // Top tomadores
+    const porTomador = {};
+    emitidas.forEach(s => {
+        if (!porTomador[s.tomador_id]) porTomador[s.tomador_id] = 0;
+        porTomador[s.tomador_id]++;
+    });
+    const topTom = Object.entries(porTomador).map(([tid, qtd]) => {
+        const t = db.tomadores.find(x => x.id == tid);
+        return { nome: t ? t.razao_social : '?', qtd };
+    }).sort((a, b) => b.qtd - a.qtd).slice(0, 10);
+
+    // Top sócios solicitantes
+    const porSocio = {};
+    sols.forEach(s => {
+        const k = s.socio_solicitante || '—';
+        porSocio[k] = (porSocio[k] || 0) + 1;
+    });
+    const topSoc = Object.entries(porSocio).map(([nome, qtd]) => ({ nome, qtd }))
+        .sort((a, b) => b.qtd - a.qtd).slice(0, 10);
+
+    // Desempenho
+    const desempenho = db.usuarios.filter(u => u.ativo).map(u => {
+        const minhas = emitidas.filter(s => s.emitida_por === u.id);
+        return {
+            nome: u.nome, perfil: u.perfil,
+            qtd: minhas.length,
+            total: minhas.reduce((a, s) => a + (s.valor_total || 0), 0)
+        };
+    }).sort((a, b) => b.qtd - a.qtd);
+
+    const mesLabel = formatarMes(mes);
+
+    return `
+        <div class="aviso-demo">
+            <strong>Versão demo local.</strong> Os dados ficam guardados só no seu navegador (localStorage).
+            A emissão por Selenium não funciona aqui — só simula. Use a versão Python pra emitir de verdade.
+            <a onclick="resetar()" style="margin-left: 8px;">[Limpar tudo]</a>
+        </div>
+        <div class="page-header">
+            <h1>Painel — ${mesLabel}</h1>
+            <div class="flex">
+                <input type="month" id="filtro-mes" value="${mes}" style="border: 1px solid var(--cinza-borda); border-radius: 6px; padding: 6px 10px;">
+                <button class="btn btn-outline btn-pequeno" onclick="navegar('dashboard', {mes: document.getElementById('filtro-mes').value})">Filtrar</button>
+            </div>
+        </div>
+        <div class="kpi-grid">
+            <div class="kpi destaque"><div class="label">Notas emitidas</div><div class="valor">${emitidas.length}</div></div>
+            <div class="kpi"><div class="label">Faturamento</div><div class="valor">R$ ${fmtMoeda(faturamento)}</div></div>
+            <div class="kpi alerta"><div class="label">Pendentes</div><div class="valor">${pendentes}</div></div>
+            <div class="kpi alerta"><div class="label">Em revisão</div><div class="valor">${revisao}</div></div>
+            <div class="kpi erro"><div class="label">Erros</div><div class="valor">${erros}</div></div>
+        </div>
+        <div class="grid-2col">
+            <div class="card">
+                <h2>Top prestadores - mais faturaram</h2>
+                ${topPrest.length ? `
+                <table><thead><tr><th>Empresa</th><th class="text-right">Notas</th><th class="text-right">Total</th></tr></thead>
+                <tbody>${topPrest.map(p => `<tr><td>${escapeHtml(p.nome)}</td><td class="text-right">${p.qtd}</td><td class="text-right">R$ ${fmtMoeda(p.total)}</td></tr>`).join('')}</tbody></table>
+                ` : '<p class="text-muted">Sem dados.</p>'}
+            </div>
+            <div class="card">
+                <h2>Tomadores que mais receberam notas</h2>
+                ${topTom.length ? `
+                <table><thead><tr><th>Tomador</th><th class="text-right">Notas</th></tr></thead>
+                <tbody>${topTom.map(t => `<tr><td>${escapeHtml(t.nome)}</td><td class="text-right">${t.qtd}</td></tr>`).join('')}</tbody></table>
+                ` : '<p class="text-muted">Sem dados.</p>'}
+            </div>
+            <div class="card">
+                <h2>Sócios que mais pediram</h2>
+                ${topSoc.length ? `
+                <table><thead><tr><th>Sócio</th><th class="text-right">Pedidos</th></tr></thead>
+                <tbody>${topSoc.map(s => `<tr><td>${escapeHtml(s.nome)}</td><td class="text-right">${s.qtd}</td></tr>`).join('')}</tbody></table>
+                ` : '<p class="text-muted">Sem dados.</p>'}
+            </div>
+            <div class="card">
+                <h2>Desempenho da equipe</h2>
+                ${desempenho.length ? `
+                <table><thead><tr><th>Pessoa</th><th>Perfil</th><th class="text-right">Notas</th><th class="text-right">Total</th></tr></thead>
+                <tbody>${desempenho.map(d => `<tr><td>${escapeHtml(d.nome)}</td><td><span class="badge ${d.perfil}">${d.perfil}</span></td><td class="text-right">${d.qtd}</td><td class="text-right">R$ ${fmtMoeda(d.total)}</td></tr>`).join('')}</tbody></table>
+                ` : '<p class="text-muted">Sem dados.</p>'}
+            </div>
+        </div>
+    `;
+}
+
+function formatarMes(ym) {
+    const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    const [a, m] = ym.split('-');
+    return `${meses[parseInt(m,10)-1]}/${a}`;
+}
+
+// ============================================================
+// PÁGINA: PRESTADORES (listar)
+// ============================================================
+function paginaPrestadores(params) {
+    const busca = (params.q || '').toLowerCase();
+    let lista = db.prestadores.slice();
+    if (busca) {
+        lista = lista.filter(p =>
+            p.razao_social.toLowerCase().includes(busca) ||
+            p.cnpj.toLowerCase().includes(busca)
+        );
+    }
+    lista.sort((a, b) => a.razao_social.localeCompare(b.razao_social));
+    return `
+        <div class="page-header">
+            <h1>Prestadores (${lista.length})</h1>
+            <div class="flex">
+                <button class="btn btn-outline" onclick="navegar('prestador-importar')">Importar AppSheet</button>
+                <button class="btn btn-primario" onclick="navegar('prestador-form')">+ Novo prestador</button>
+            </div>
+        </div>
+        <div class="card">
+            <div class="flex mb-16">
+                <input type="text" id="busca-prest" placeholder="Buscar por razão social ou CNPJ..." value="${escapeHtml(params.q || '')}" style="flex:1; padding: 8px 12px; border: 1px solid var(--cinza-borda); border-radius: 6px;" onkeydown="if(event.key==='Enter') navegar('prestadores',{q:this.value})">
+                <button class="btn btn-secundario" onclick="navegar('prestadores',{q:document.getElementById('busca-prest').value})">Buscar</button>
+                ${busca ? '<button class="btn btn-outline" onclick="navegar(\'prestadores\')">Limpar</button>' : ''}
+            </div>
+            <table>
+                <thead><tr><th>Razão Social</th><th>CNPJ</th><th class="text-right">Regras</th><th></th></tr></thead>
+                <tbody>
+                ${lista.length === 0 ? `
+                    <tr><td colspan="4" style="text-align: center; padding: 30px;" class="text-muted">
+                        Nenhum prestador. <a onclick="navegar('prestador-importar')">Importar do AppSheet</a>
+                        ou <a onclick="navegar('prestador-form')">cadastrar manualmente</a>.
+                    </td></tr>
+                ` : lista.map(p => {
+                    const qtd = db.particularidades.filter(x => x.prestador_id === p.id && x.ativo).length;
+                    return `<tr>
+                        <td><strong>${escapeHtml(p.razao_social)}</strong></td>
+                        <td>${escapeHtml(p.cnpj)}</td>
+                        <td class="text-right">${qtd > 0 ? `<span class="badge alta">${qtd}</span>` : '<span class="text-muted">0</span>'}</td>
+                        <td class="text-right"><button class="btn btn-outline btn-pequeno" onclick="navegar('prestador-form',{id:${p.id}})">Abrir</button></td>
+                    </tr>`;
+                }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+// ============================================================
+// PÁGINA: PRESTADOR FORM (novo/editar)
+// ============================================================
+function paginaPrestadorForm(params) {
+    const p = params.id ? db.prestadores.find(x => x.id === params.id) : null;
+    const regras = p ? db.particularidades.filter(x => x.prestador_id === p.id) : [];
+
+    return `
+        <div class="page-header">
+            <h1>${p ? escapeHtml(p.razao_social) : 'Novo prestador'}</h1>
+            <button class="btn btn-outline" onclick="navegar('prestadores')">← Voltar</button>
+        </div>
+        <form onsubmit="event.preventDefault(); salvarPrestador(${p ? p.id : 'null'})">
+            <div class="card">
+                <h2>Dados do prestador</h2>
+                <div class="form-grid">
+                    <div class="form-grupo"><label>Razão social *</label><input type="text" name="razao_social" required value="${escapeHtml(p ? p.razao_social : '')}"></div>
+                    <div class="form-grupo"><label>CNPJ *</label><input type="text" name="cnpj" required value="${escapeHtml(p ? p.cnpj : '')}"></div>
+                    <div class="form-grupo"><label>Sócio responsável</label><input type="text" name="socio_responsavel" value="${escapeHtml(p ? p.socio_responsavel : '')}"></div>
+                    <div class="form-grupo"><label>Senha da prefeitura</label><input type="text" name="senha_prefeitura" value="${escapeHtml(p ? p.senha_prefeitura : '')}"></div>
+                    <div class="form-grupo"><label>CNAE padrão</label><input type="text" name="cnae_padrao" value="${escapeHtml(p ? p.cnae_padrao : '')}"></div>
+                    <div class="form-grupo"><label>Alíquota padrão (%)</label><input type="text" name="aliquota_padrao" value="${p && p.aliquota_padrao != null ? p.aliquota_padrao : ''}"></div>
+                    <div class="form-grupo"><label>ISS Retido padrão</label>
+                        <select name="iss_retido_padrao">
+                            <option value="Não" ${p && p.iss_retido_padrao === 'Não' ? 'selected' : ''}>Não</option>
+                            <option value="Sim" ${p && p.iss_retido_padrao === 'Sim' ? 'selected' : ''}>Sim</option>
+                        </select>
+                    </div>
+                    <div class="form-grupo"><label>URL modelo de nota</label><input type="url" name="modelo_nota_url" value="${escapeHtml(p ? p.modelo_nota_url : '')}"></div>
+                    <div class="form-grupo full"><label>Descrição padrão da nota</label><textarea name="descricao_padrao">${escapeHtml(p ? p.descricao_padrao : '')}</textarea></div>
+                    <div class="form-grupo full"><label>Dados bancários</label><textarea name="dados_bancarios">${escapeHtml(p ? p.dados_bancarios : '')}</textarea></div>
+                    <div class="form-grupo full"><label>Observações gerais</label><textarea name="observacoes" rows="4">${escapeHtml(p ? p.observacoes : '')}</textarea></div>
+                </div>
+                <div class="text-right mt-16">
+                    <button type="submit" class="btn btn-primario">Salvar prestador</button>
+                </div>
+            </div>
+        </form>
+
+        ${p ? `
+        <div class="card">
+            <h2>Particularidades / Regras de validação (${regras.length})</h2>
+            <p class="text-muted" style="margin-top:-8px;">Cada regra é verificada automaticamente antes de emitir.</p>
+            ${regras.length ? `
+            <table class="mb-16">
+                <thead><tr><th>Tipo</th><th>Descrição</th><th>Valor esperado</th><th>CNPJ específico</th><th>Severidade</th><th></th></tr></thead>
+                <tbody>
+                ${regras.map(r => `
+                    <tr>
+                        <td><code>${escapeHtml(r.tipo)}</code></td>
+                        <td>${escapeHtml(r.descricao)}</td>
+                        <td>${escapeHtml(r.valor_esperado || '—')}</td>
+                        <td>${escapeHtml(r.cnpj_tomador_especifico || 'todos')}</td>
+                        <td><span class="badge ${r.severidade}">${r.severidade}</span></td>
+                        <td class="text-right">
+                            <button class="btn btn-perigo btn-pequeno" onclick="removerRegra(${r.id}, ${p.id})">Remover</button>
+                        </td>
+                    </tr>
+                `).join('')}
+                </tbody>
+            </table>
+            ` : ''}
+            <h3>Adicionar nova regra</h3>
+            <form onsubmit="event.preventDefault(); adicionarRegra(${p.id})">
+                <div class="form-grid">
+                    <div class="form-grupo">
+                        <label>Tipo *</label>
+                        <select name="tipo" required>
+                            <option value="aviso">Aviso (só informa)</option>
+                            <option value="retencao_obrigatoria">Retenção obrigatória</option>
+                            <option value="iss_retido_obrig">ISS Retido obrigatório</option>
+                            <option value="aliquota_fixa">Alíquota fixa</option>
+                            <option value="cnae_fixo">CNAE fixo</option>
+                            <option value="descricao_padrao">Descrição precisa conter texto</option>
+                            <option value="email_destino">E-mail de destino específico</option>
+                            <option value="documentacao">Exige documentação extra</option>
+                            <option value="cliente_especifico">Regra de cliente específico</option>
+                        </select>
+                    </div>
+                    <div class="form-grupo">
+                        <label>Severidade</label>
+                        <select name="severidade">
+                            <option value="baixa">Baixa</option>
+                            <option value="media" selected>Média</option>
+                            <option value="alta">Alta (bloqueia emissão)</option>
+                        </select>
+                    </div>
+                    <div class="form-grupo"><label>Valor esperado</label><input type="text" name="valor_esperado" placeholder="Ex: INSS, SIM, 2.17"></div>
+                    <div class="form-grupo"><label>CNPJ tomador específico</label><input type="text" name="cnpj_tomador_especifico" placeholder="(em branco = todos)"></div>
+                    <div class="form-grupo full"><label>Descrição da regra *</label><input type="text" name="descricao" required placeholder="Ex: Cliente exige certidões negativas antes de emitir"></div>
+                </div>
+                <div class="text-right mt-16">
+                    <button type="submit" class="btn btn-secundario">+ Adicionar regra</button>
+                </div>
+            </form>
+        </div>
+        ` : ''}
+    `;
+}
+
+function salvarPrestador(pid) {
+    const f = event.target;
+    const dados = {
+        razao_social: f.razao_social.value.trim(),
+        cnpj: f.cnpj.value.trim(),
+        socio_responsavel: f.socio_responsavel.value.trim(),
+        senha_prefeitura: f.senha_prefeitura.value.trim(),
+        cnae_padrao: f.cnae_padrao.value.trim(),
+        aliquota_padrao: f.aliquota_padrao.value ? parseFloat(f.aliquota_padrao.value.replace(',', '.')) : null,
+        iss_retido_padrao: f.iss_retido_padrao.value,
+        modelo_nota_url: f.modelo_nota_url.value.trim(),
+        descricao_padrao: f.descricao_padrao.value.trim(),
+        dados_bancarios: f.dados_bancarios.value.trim(),
+        observacoes: f.observacoes.value.trim(),
+        ativo: 1
+    };
+    if (!dados.razao_social || !dados.cnpj) {
+        flash('Razão social e CNPJ são obrigatórios.', 'erro');
+        navegar('prestador-form', { id: pid });
+        return;
+    }
+    if (pid) {
+        const p = db.prestadores.find(x => x.id === pid);
+        Object.assign(p, dados);
+    } else {
+        const novo = { id: proxId('prestadores'), ...dados };
+        db.prestadores.push(novo);
+        pid = novo.id;
+    }
+    salvar();
+    flash('Prestador salvo com sucesso.');
+    navegar('prestador-form', { id: pid });
+}
+
+function adicionarRegra(pid) {
+    const f = event.target;
+    db.particularidades.push({
+        id: proxId('particularidades'),
+        prestador_id: pid,
+        tipo: f.tipo.value,
+        descricao: f.descricao.value,
+        valor_esperado: f.valor_esperado.value || null,
+        cnpj_tomador_especifico: f.cnpj_tomador_especifico.value || null,
+        severidade: f.severidade.value,
+        ativo: 1
+    });
+    salvar();
+    flash('Regra adicionada.');
+    navegar('prestador-form', { id: pid });
+}
+
+function removerRegra(rid, pid) {
+    if (!confirm('Remover essa regra?')) return;
+    db.particularidades = db.particularidades.filter(r => r.id !== rid);
+    salvar();
+    flash('Regra removida.');
+    navegar('prestador-form', { id: pid });
+}
+
+// ============================================================
+// PÁGINA: IMPORTAR CSV
+// ============================================================
+function paginaImportar() {
+    return `
+        <div class="page-header">
+            <h1>Importar prestadores do AppSheet</h1>
+            <button class="btn btn-outline" onclick="navegar('prestadores')">← Voltar</button>
+        </div>
+        <div class="card">
+            <h2>Como funciona</h2>
+            <p>Exporte os dados do AppSheet em CSV (separado por <code>;</code>) com as colunas:
+                <strong>EMPRESA, CNPJ, OBSERVAÇÕES, RETENÇÃO, Dados Bancários, Descrição da Nota Padrão, ISS RETIDO, Modelo nota fiscal</strong>.</p>
+            <p>O sistema vai criar/atualizar prestadores, inferir particularidades das observações,
+            e marcar regras importadas como <code>[Importado AppSheet]</code> pra você revisar depois.</p>
+            <form onsubmit="event.preventDefault(); processarArquivo()" class="mt-16">
+                <div class="form-grupo"><label>Arquivo CSV</label><input type="file" id="arquivo-csv" accept=".csv" required></div>
+                <div class="text-right mt-16"><button type="submit" class="btn btn-primario">Importar agora</button></div>
+            </form>
+        </div>
+    `;
+}
+
+function processarArquivo() {
+    const arq = document.getElementById('arquivo-csv').files[0];
+    if (!arq) { flash('Selecione um arquivo CSV.', 'erro'); navegar('prestador-importar'); return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+        const r = importarCsv(e.target.result);
+        if (r.erro) flash('Erro: ' + r.erro, 'erro');
+        else flash(`Importação OK: ${r.importados} novos, ${r.atualizados} atualizados.`);
+        navegar('prestadores');
+    };
+    reader.readAsText(arq, 'UTF-8');
+}
+
+// ============================================================
+// PÁGINA: SOLICITAÇÕES (listar)
+// ============================================================
+function paginaSolicitacoes(params) {
+    const filtro = params.status || '';
+    let lista = db.solicitacoes.slice();
+    if (filtro) lista = lista.filter(s => s.status === filtro);
+    lista.sort((a, b) => (b.criada_em || '').localeCompare(a.criada_em || ''));
+    lista = lista.slice(0, 200);
+    return `
+        <div class="page-header">
+            <h1>Solicitações de nota</h1>
+            <button class="btn btn-primario" onclick="navegar('solicitacao-nova')">+ Nova solicitação</button>
+        </div>
+        <div class="card">
+            <div class="flex mb-16">
+                <select id="filtro-status" style="padding: 8px 12px; border: 1px solid var(--cinza-borda); border-radius: 6px;">
+                    <option value="">Todos os status</option>
+                    <option value="pendente" ${filtro==='pendente'?'selected':''}>Pendentes</option>
+                    <option value="aguardando_revisao" ${filtro==='aguardando_revisao'?'selected':''}>Aguardando revisão</option>
+                    <option value="emitida" ${filtro==='emitida'?'selected':''}>Emitidas</option>
+                    <option value="erro" ${filtro==='erro'?'selected':''}>Com erro</option>
+                </select>
+                <button class="btn btn-secundario" onclick="navegar('solicitacoes',{status:document.getElementById('filtro-status').value})">Filtrar</button>
+            </div>
+            <table>
+                <thead><tr><th>#</th><th>Criada</th><th>Prestador</th><th>Tomador</th><th>Sócio</th><th class="text-right">Valor</th><th>Status</th><th>Nº nota</th><th></th></tr></thead>
+                <tbody>
+                ${lista.length === 0 ? `<tr><td colspan="9" style="text-align:center; padding:40px;" class="text-muted">Nenhuma solicitação ainda. <a onclick="navegar('solicitacao-nova')">Crie a primeira</a>.</td></tr>` :
+                lista.map(s => {
+                    const p = db.prestadores.find(x => x.id === s.prestador_id);
+                    const t = db.tomadores.find(x => x.id === s.tomador_id);
+                    return `<tr>
+                        <td>${s.id}</td>
+                        <td>${(s.criada_em || '').slice(0, 16)}</td>
+                        <td>${escapeHtml(p ? p.razao_social : '?')}</td>
+                        <td>${escapeHtml(t ? t.razao_social : '?')}</td>
+                        <td>${escapeHtml(s.socio_solicitante || '—')}</td>
+                        <td class="text-right">R$ ${fmtMoeda(s.valor_total)}</td>
+                        <td><span class="badge ${s.status}">${s.status}</span></td>
+                        <td>${escapeHtml(s.numero_nota || '—')}</td>
+                        <td class="text-right"><button class="btn btn-outline btn-pequeno" onclick="navegar('solicitacao-detalhe',{id:${s.id}})">Abrir</button></td>
+                    </tr>`;
+                }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+// ============================================================
+// PÁGINA: SOLICITAÇÃO NOVA
+// ============================================================
+function paginaSolicitacaoNova() {
+    const prestadores = db.prestadores.filter(p => p.ativo).sort((a, b) => a.razao_social.localeCompare(b.razao_social));
+    const tomadores = db.tomadores.slice().sort((a, b) => a.razao_social.localeCompare(b.razao_social));
+    return `
+        <div class="page-header">
+            <h1>Nova solicitação de nota</h1>
+            <button class="btn btn-outline" onclick="navegar('solicitacoes')">← Voltar</button>
+        </div>
+        <form id="form-solicitacao" onsubmit="event.preventDefault(); salvarSolicitacao()">
+            <div class="card">
+                <h2>Quem emite e para quem</h2>
+                <div class="form-grid">
+                    <div class="form-grupo">
+                        <label>Prestador *</label>
+                        <select name="prestador_id" id="sel-prestador" required onchange="aoMudarPrestador()">
+                            <option value="">— Selecione —</option>
+                            ${prestadores.map(p => `<option value="${p.id}">${escapeHtml(p.razao_social)} (${escapeHtml(p.cnpj)})</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-grupo"><label>Sócio que solicitou *</label><input type="text" name="socio_solicitante" required></div>
+                    <div class="form-grupo full">
+                        <label>Tomador — selecione ou cadastre abaixo</label>
+                        <select name="tomador_id" id="sel-tomador">
+                            <option value="">— Selecione ou preencha abaixo —</option>
+                            ${tomadores.map(t => `<option value="${t.id}">${escapeHtml(t.razao_social)} (${escapeHtml(t.cnpj)})</option>`).join('')}
+                        </select>
+                    </div>
+                </div>
+                <h3>Ou cadastre um novo tomador</h3>
+                <div class="form-grid">
+                    <div class="form-grupo"><label>CNPJ do tomador</label><input type="text" name="novo_tomador_cnpj"></div>
+                    <div class="form-grupo"><label>Razão social</label><input type="text" name="novo_tomador_razao"></div>
+                    <div class="form-grupo"><label>E-mail (opcional)</label><input type="email" name="novo_tomador_email"></div>
+                </div>
+            </div>
+            <div class="card">
+                <h2>Dados da nota</h2>
+                <div class="form-grid">
+                    <div class="form-grupo"><label>Valor total (R$) *</label><input type="text" name="valor_total" required></div>
+                    <div class="form-grupo"><label>Alíquota (%)</label><input type="text" name="aliquota" id="i-aliquota"></div>
+                    <div class="form-grupo"><label>CNAE</label><input type="text" name="cnae" id="i-cnae"></div>
+                    <div class="form-grupo"><label>ISS Retido</label>
+                        <select name="iss_retido" id="i-iss"><option value="Não">Não</option><option value="Sim">Sim</option></select>
+                    </div>
+                    <div class="form-grupo"><label>Data competência</label><input type="text" name="data_competencia" placeholder="DD/MM/AAAA"></div>
+                    <div class="form-grupo full"><label>Discriminação dos serviços *</label><textarea name="discriminacao" id="i-discr" required rows="3"></textarea></div>
+                </div>
+            </div>
+            <div class="card">
+                <h2>Retenções e descontos</h2>
+                <div class="form-grid">
+                    <div class="form-grupo"><label>INSS</label><input type="text" name="inss"></div>
+                    <div class="form-grupo"><label>IRRF</label><input type="text" name="irrf"></div>
+                    <div class="form-grupo"><label>CSLL</label><input type="text" name="csll"></div>
+                    <div class="form-grupo"><label>COFINS</label><input type="text" name="cofins"></div>
+                    <div class="form-grupo"><label>PIS</label><input type="text" name="pis"></div>
+                    <div class="form-grupo"><label>Outras retenções</label><input type="text" name="outras_retencoes"></div>
+                    <div class="form-grupo"><label>Desc. condicionado</label><input type="text" name="desc_condicionado"></div>
+                    <div class="form-grupo"><label>Desc. incondicionado</label><input type="text" name="desc_incondicionado"></div>
+                </div>
+            </div>
+            <div id="painel-particularidades" class="hidden card">
+                <h2>⚠️ Particularidades deste prestador</h2>
+                <div id="lista-particularidades"></div>
+            </div>
+            <div class="text-right mb-16">
+                <button type="submit" class="btn btn-primario">Salvar solicitação</button>
+            </div>
+        </form>
+    `;
+}
+
+function aoMudarPrestador() {
+    const pid = parseInt(document.getElementById('sel-prestador').value, 10);
+    const painel = document.getElementById('painel-particularidades');
+    const lista = document.getElementById('lista-particularidades');
+    if (!pid) { painel.classList.add('hidden'); return; }
+    const p = db.prestadores.find(x => x.id === pid);
+    if (!p) return;
+    // Preenche padrões
+    if (p.cnae_padrao) document.getElementById('i-cnae').value = p.cnae_padrao;
+    if (p.aliquota_padrao != null) document.getElementById('i-aliquota').value = p.aliquota_padrao;
+    if (p.descricao_padrao && !document.getElementById('i-discr').value) document.getElementById('i-discr').value = p.descricao_padrao;
+    if (p.iss_retido_padrao) document.getElementById('i-iss').value = p.iss_retido_padrao;
+    // Mostra particularidades
+    const regras = db.particularidades.filter(r => r.prestador_id === pid && r.ativo);
+    if (regras.length) {
+        lista.innerHTML = regras.map(r => `
+            <div class="alerta-particularidade ${r.severidade}">
+                <div class="icone">${r.severidade==='alta'?'🔴':r.severidade==='media'?'🟡':'🔵'}</div>
+                <div class="corpo">
+                    <div class="titulo">${escapeHtml(r.tipo.replace('_', ' ').toUpperCase())}</div>
+                    <div>${escapeHtml(r.descricao)}</div>
+                    ${r.valor_esperado ? `<div class="meta">Valor esperado: <strong>${escapeHtml(r.valor_esperado)}</strong></div>` : ''}
+                    ${r.cnpj_tomador_especifico ? `<div class="meta">Só vale pra tomador: ${escapeHtml(r.cnpj_tomador_especifico)}</div>` : ''}
+                </div>
+            </div>
+        `).join('');
+        painel.classList.remove('hidden');
+    } else { painel.classList.add('hidden'); }
+}
+
+function salvarSolicitacao() {
+    const f = document.getElementById('form-solicitacao');
+    const num = (n) => {
+        const v = (f.elements[n].value || '').replace(',', '.').trim();
+        return v ? parseFloat(v) || 0 : 0;
+    };
+    let tomadorId = f.tomador_id.value ? parseInt(f.tomador_id.value, 10) : null;
+    if (!tomadorId) {
+        const novoCnpj = f.novo_tomador_cnpj.value.trim();
+        const novaRazao = f.novo_tomador_razao.value.trim();
+        if (novoCnpj && novaRazao) {
+            let t = db.tomadores.find(x => x.cnpj === novoCnpj);
+            if (!t) {
+                t = {
+                    id: proxId('tomadores'),
+                    razao_social: novaRazao, cnpj: novoCnpj,
+                    email: f.novo_tomador_email.value.trim()
+                };
+                db.tomadores.push(t);
+            }
+            tomadorId = t.id;
+        }
+    }
+    if (!tomadorId) { flash('Selecione ou cadastre um tomador.', 'erro'); navegar('solicitacao-nova'); return; }
+    const prestadorId = parseInt(f.prestador_id.value, 10);
+    const tomador = db.tomadores.find(x => x.id === tomadorId);
+    const valor = num('valor_total');
+    if (!prestadorId || !f.discriminacao.value.trim() || valor <= 0) {
+        flash('Prestador, descrição e valor são obrigatórios.', 'erro'); navegar('solicitacao-nova'); return;
+    }
+    const sol = {
+        id: proxId('solicitacoes'),
+        prestador_id: prestadorId,
+        tomador_id: tomadorId,
+        cnpj_tomador: tomador.cnpj,
+        socio_solicitante: f.socio_solicitante.value.trim(),
+        valor_total: valor,
+        aliquota: num('aliquota'),
+        cnae: f.cnae.value.trim(),
+        discriminacao: f.discriminacao.value.trim(),
+        iss_retido: f.iss_retido.value,
+        data_competencia: f.data_competencia.value || null,
+        inss: num('inss'), irrf: num('irrf'), csll: num('csll'),
+        cofins: num('cofins'), pis: num('pis'), outras_retencoes: num('outras_retencoes'),
+        desc_condicionado: num('desc_condicionado'), desc_incondicionado: num('desc_incondicionado'),
+        status: 'pendente',
+        numero_nota: null,
+        pdf_path: null,
+        criada_por: db.sessao.usuario_id,
+        emitida_por: null,
+        criada_em: agora(),
+        emitida_em: null,
+        log_emissao: null
+    };
+    sol.valor_liquido_esperado = sol.valor_total - sol.inss - sol.irrf - sol.csll - sol.cofins - sol.pis - sol.outras_retencoes - sol.desc_condicionado - sol.desc_incondicionado;
+    db.solicitacoes.push(sol);
+    salvar();
+    flash('Solicitação registrada. Confira os alertas antes de emitir.');
+    navegar('solicitacao-detalhe', { id: sol.id });
+}
+
+// ============================================================
+// PÁGINA: SOLICITAÇÃO DETALHE
+// ============================================================
+function paginaSolicitacaoDetalhe(params) {
+    const sol = db.solicitacoes.find(s => s.id === params.id);
+    if (!sol) { return '<p>Não encontrada.</p>'; }
+    const p = db.prestadores.find(x => x.id === sol.prestador_id);
+    const t = db.tomadores.find(x => x.id === sol.tomador_id);
+    const uCriou = db.usuarios.find(u => u.id === sol.criada_por);
+    const uEmitiu = sol.emitida_por ? db.usuarios.find(u => u.id === sol.emitida_por) : null;
+    const alertas = validarSolicitacao(sol);
+    const temAlta = alertas.some(a => a.severidade === 'alta');
+
+    return `
+        <div class="page-header">
+            <h1>Solicitação #${sol.id} <span class="badge ${sol.status}">${sol.status}</span></h1>
+            <button class="btn btn-outline" onclick="navegar('solicitacoes')">← Voltar</button>
+        </div>
+        ${alertas.length ? `
+        <div class="card" style="border-left: 4px solid var(--alerta-media);">
+            <h2>⚠️ Pontos de atenção antes de emitir (${alertas.length})</h2>
+            <p class="text-muted" style="margin-top:-8px;">Comparamos os dados com as particularidades cadastradas para <strong>${escapeHtml(p ? p.razao_social : '?')}</strong>:</p>
+            ${alertas.map(a => `
+            <div class="alerta-particularidade ${a.severidade}">
+                <div class="icone">${a.severidade==='alta'?'🔴':a.severidade==='media'?'🟡':'🔵'}</div>
+                <div class="corpo">
+                    <div class="titulo">${escapeHtml(a.tipo.replace('_',' ').toUpperCase())} <span class="badge ${a.severidade}">${a.severidade}</span></div>
+                    <div>${escapeHtml(a.descricao)}</div>
+                    ${a.campo_divergente ? `<div class="meta">Campo divergente: <strong>${escapeHtml(a.campo_divergente)}</strong> — esperado: <strong>${escapeHtml(a.valor_esperado || '')}</strong> — informado: <strong>${escapeHtml(a.valor_informado || '')}</strong></div>` : ''}
+                </div>
+            </div>`).join('')}
+        </div>` : `<div class="flash-msg sucesso">✓ Nenhuma particularidade divergente. Dados conferem com o cadastro.</div>`}
+
+        <div class="grid-2col">
+            <div class="card">
+                <h2>Prestador</h2>
+                <p><strong>${escapeHtml(p ? p.razao_social : '?')}</strong><br>CNPJ: ${escapeHtml(p ? p.cnpj : '?')}</p>
+                ${p && p.dados_bancarios ? `<h3>Dados bancários</h3><pre style="white-space:pre-wrap; font-family:inherit; margin:0;">${escapeHtml(p.dados_bancarios)}</pre>` : ''}
+            </div>
+            <div class="card">
+                <h2>Tomador</h2>
+                <p><strong>${escapeHtml(t ? t.razao_social : '?')}</strong><br>CNPJ: ${escapeHtml(t ? t.cnpj : '?')}<br>
+                ${t && t.email ? `E-mail: ${escapeHtml(t.email)}` : ''}</p>
+            </div>
+        </div>
+        <div class="card">
+            <h2>Dados da nota</h2>
+            <div class="form-grid">
+                <div><strong>Valor total:</strong> R$ ${fmtMoeda(sol.valor_total)}</div>
+                <div><strong>Alíquota:</strong> ${sol.aliquota}%</div>
+                <div><strong>CNAE:</strong> ${escapeHtml(sol.cnae || '—')}</div>
+                <div><strong>ISS retido:</strong> ${escapeHtml(sol.iss_retido)}</div>
+                <div><strong>Competência:</strong> ${escapeHtml(sol.data_competencia || '—')}</div>
+                <div><strong>Valor líquido esperado:</strong> R$ ${fmtMoeda(sol.valor_liquido_esperado)}</div>
+            </div>
+            <div class="mt-16"><strong>Discriminação:</strong>
+                <p style="background:var(--verde-suave); padding:12px; border-radius:6px; margin:6px 0 0;">${escapeHtml(sol.discriminacao)}</p>
+            </div>
+            <h3>Retenções</h3>
+            <table>
+                <tr>
+                    <td>INSS</td><td>R$ ${fmtMoeda(sol.inss)}</td>
+                    <td>IRRF</td><td>R$ ${fmtMoeda(sol.irrf)}</td>
+                    <td>CSLL</td><td>R$ ${fmtMoeda(sol.csll)}</td>
+                </tr>
+                <tr>
+                    <td>COFINS</td><td>R$ ${fmtMoeda(sol.cofins)}</td>
+                    <td>PIS</td><td>R$ ${fmtMoeda(sol.pis)}</td>
+                    <td>Outras</td><td>R$ ${fmtMoeda(sol.outras_retencoes)}</td>
+                </tr>
+            </table>
+        </div>
+        <div class="card">
+            <h2>Auditoria</h2>
+            <p>
+                <strong>Criada por:</strong> ${escapeHtml(uCriou ? uCriou.nome : '?')} em ${escapeHtml(sol.criada_em)}<br>
+                <strong>Sócio solicitante:</strong> ${escapeHtml(sol.socio_solicitante || '—')}<br>
+                ${uEmitiu ? `<strong>Emitida por:</strong> ${escapeHtml(uEmitiu.nome)} em ${escapeHtml(sol.emitida_em || '—')}<br>` : ''}
+                ${sol.numero_nota ? `<strong>Número da nota:</strong> ${escapeHtml(sol.numero_nota)}<br>` : ''}
+            </p>
+        </div>
+        ${['pendente', 'erro', 'aguardando_revisao'].includes(sol.status) ? `
+        <div class="card" style="border-left: 4px solid var(--verde-claro);">
+            <h2>Emitir nota (simulação)</h2>
+            <div class="aviso-demo">Esta versão HTML <strong>simula</strong> a emissão (cria um número fake). Para emitir de verdade, use a versão Python.</div>
+            <form onsubmit="event.preventDefault(); simularEmissao(${sol.id})">
+                ${temAlta ? `
+                <p style="color: var(--alerta-alta); font-weight: 600;">⚠️ Há alertas de severidade ALTA. Confirme abaixo:</p>
+                <label class="flex" style="cursor:pointer; padding:12px; background: var(--alerta-alta-bg); border-radius:6px;">
+                    <input type="checkbox" name="aceito" required>&nbsp;<strong>Li e confirmo que está tudo conferido.</strong>
+                </label>` : '<p>Tudo conferido. Clique para emitir:</p>'}
+                <div class="text-right mt-16">
+                    <button type="submit" class="btn btn-primario">🚀 Emitir nota (simulação)</button>
+                </div>
+            </form>
+        </div>` : ''}
+        ${sol.log_emissao ? `<div class="card"><h2>Log da emissão</h2><div class="log-console">${escapeHtml(sol.log_emissao)}</div></div>` : ''}
+    `;
+}
+
+function simularEmissao(sid) {
+    const sol = db.solicitacoes.find(s => s.id === sid);
+    if (!sol) return;
+    // Simula
+    sol.status = 'emitida';
+    sol.numero_nota = 'DEMO-' + Math.floor(Math.random() * 100000).toString().padStart(6, '0');
+    sol.emitida_por = db.sessao.usuario_id;
+    sol.emitida_em = agora();
+    sol.log_emissao = `[${agora()}] Simulação iniciada\n[${agora()}] Login OK (simulado)\n[${agora()}] Dados preenchidos (simulado)\n[${agora()}] Nota emitida: ${sol.numero_nota}\n[${agora()}] PDF salvo (simulado)`;
+    salvar();
+    flash(`Nota ${sol.numero_nota} emitida (simulação).`);
+    navegar('solicitacao-detalhe', { id: sid });
+}
+
+// ============================================================
+// PÁGINA: USUÁRIOS
+// ============================================================
+function paginaUsuarios() {
+    return `
+        <div class="page-header"><h1>Equipe (${db.usuarios.length})</h1></div>
+        <div class="card">
+            <h2>Novo membro</h2>
+            <form onsubmit="event.preventDefault(); criarUsuario()">
+                <div class="form-grid">
+                    <div class="form-grupo"><label>Nome *</label><input type="text" name="nome" required></div>
+                    <div class="form-grupo"><label>E-mail *</label><input type="email" name="email" required></div>
+                    <div class="form-grupo"><label>Senha *</label><input type="password" name="senha" required></div>
+                    <div class="form-grupo"><label>Perfil *</label>
+                        <select name="perfil" required>
+                            <option value="estagiario">Estagiário</option>
+                            <option value="socio">Sócio</option>
+                            <option value="admin">Administrador</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="text-right mt-16"><button type="submit" class="btn btn-primario">+ Adicionar</button></div>
+            </form>
+        </div>
+        <div class="card">
+            <h2>Membros cadastrados</h2>
+            <table>
+                <thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                ${db.usuarios.map(u => `
+                    <tr>
+                        <td><strong>${escapeHtml(u.nome)}</strong></td>
+                        <td>${escapeHtml(u.email)}</td>
+                        <td><span class="badge ${u.perfil}">${u.perfil}</span></td>
+                        <td>${u.ativo ? '<span class="badge emitida">Ativo</span>' : '<span class="badge cancelada">Inativo</span>'}</td>
+                        <td class="text-right">
+                            <button class="btn btn-outline btn-pequeno" onclick="toggleUsuario(${u.id})">${u.ativo ? 'Desativar' : 'Ativar'}</button>
+                        </td>
+                    </tr>
+                `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+function criarUsuario() {
+    const f = event.target;
+    if (db.usuarios.find(u => u.email === f.email.value.trim().toLowerCase())) {
+        flash('Já existe usuário com esse e-mail.', 'erro'); navegar('usuarios'); return;
+    }
+    db.usuarios.push({
+        id: proxId('usuarios'),
+        nome: f.nome.value.trim(),
+        email: f.email.value.trim().toLowerCase(),
+        senha: f.senha.value,
+        perfil: f.perfil.value,
+        ativo: 1,
+        criado_em: agora()
+    });
+    salvar();
+    flash('Usuário criado.');
+    navegar('usuarios');
+}
+
+function toggleUsuario(uid) {
+    const u = db.usuarios.find(x => x.id === uid);
+    if (u) { u.ativo = u.ativo ? 0 : 1; salvar(); }
+    navegar('usuarios');
+}
+</script>
+</body>
+</html>

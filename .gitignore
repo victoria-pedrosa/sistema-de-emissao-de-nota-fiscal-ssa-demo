@@ -1,0 +1,44 @@
+# --- Segredos: NUNCA vão para o GitHub ---
+.env
+*.pem
+*.pfx
+*.p12
+credenciais*.json
+credentials*.json
+token*.json
+service_account*.json
+
+# --- Dados de cliente (LGPD) ---
+*.xlsx
+*.xls
+*.xlsm
+*.csv
+*.pdf
+*.zip
+*.db
+*.sqlite
+*.xml
+!tarefa.xml
+data/
+dados/
+downloads/
+downloads_temp/
+Notas Emitidas/
+PDFs_Baixados/
+
+# --- Prints gerados pelos robôs em execução ---
+captcha*.png
+ERRO*.png
+REGULAR*.png
+ATENCAO*.png
+erro_*.png
+
+# --- Python / build ---
+__pycache__/
+*.pyc
+build/
+dist/
+venv/
+.venv/
+*.log
+logs/

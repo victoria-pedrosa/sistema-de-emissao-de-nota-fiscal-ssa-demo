@@ -1,6 +1,6 @@
-# Sistema De Emissao De Nota Fiscal Ssa
+# Demonstração — Emissão de NFS-e em Salvador
 
-> Projeto de portfólio de **Victória Pedrosa** (Automação, Processos e Dados). Automação desenvolvida para um escritório de contabilidade; **esta é uma versão com dados fictícios** — nomes, CNPJs, e-mails e IDs internos foram substituídos.
+> Projeto de portfólio de **Victória Pedrosa**. **Demonstração** de emissão de NFS-e em Salvador — versão com dados fictícios (nomes, CNPJs, e-mails e IDs internos substituídos).
 
 ## Problema de negócio
 A emissão de NFS-e em Salvador para muitos clientes era manual, repetitiva e sujeita a erro.
